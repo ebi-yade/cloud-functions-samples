@@ -1,4 +1,4 @@
-module github.com/ebi-yade/cloud-functions-samples/v2
+module github.com/ebi-yade/cloud-functions-samples/gen2
 
 go 1.22.3
 
