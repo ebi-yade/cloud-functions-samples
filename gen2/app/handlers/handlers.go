@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
+	"github.com/Songmu/flextime"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
 	"github.com/pkg/errors"
@@ -30,7 +32,7 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 	event := SomeEvent{
 		Overview:  fmt.Sprintf("received an HTTP(%s) request", r.Method),
 		Payload:   body,
-		CreatedAt: "2021-01-01T00:00:00Z",
+		CreatedAt: flextime.Now(),
 	}
 	data, err := json.Marshal(event)
 	if err != nil {
@@ -51,7 +53,7 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 type SomeEvent struct {
-	Overview  string `json:"overview"`
-	Payload   []byte `json:"payload"`
-	CreatedAt string `json:"created_at"`
+	Overview  string    `json:"overview"`
+	Payload   []byte    `json:"payload"`
+	CreatedAt time.Time `json:"created_at"`
 }
