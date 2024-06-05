@@ -38,10 +38,7 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return errors.Wrap(err, "error json.Marshal")
 	}
-	msg := pubsub.Message{
-		Data: data,
-	}
-	if err := h.topic.Publish(ctx, msg); err != nil {
+	if err := h.topic.Publish(ctx, pubsub.Message{Data: data}); err != nil {
 		return errors.Wrap(err, "error topic.Publish")
 	}
 
