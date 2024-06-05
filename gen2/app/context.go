@@ -53,7 +53,7 @@ func GetStatusCode(ctx context.Context) int {
 	return *v.statusCode
 }
 
-func SetStatusCode(ctx context.Context, statusCode int) {
+func setStatusCode(ctx context.Context, statusCode int) {
 	v := GetValues(ctx)
 	v.statusCode = &statusCode
 }

@@ -8,6 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
+	"github.com/pkg/errors"
 )
 
 func init() {
@@ -16,11 +21,30 @@ func init() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 	defer stop()
 
-	appLogger := slog.New(NewLogHandler(os.Stderr, slog.LevelInfo))
-	slog.SetDefault(appLogger)
+	// ==============================================================
+	// Initialize structured logging
+	// ==============================================================
+	logger := slog.New(NewLogHandler(os.Stderr, slog.LevelInfo))
+	slog.SetDefault(logger)
 	// you may want to get the project ID from the metadata server
 	projectID := mustEnv("GOOGLE_CLOUD_PROJECT")
-	slog.SetDefault(appLogger.With(slog.String("project_id", projectID)))
+	slog.SetDefault(logger.With(slog.String("project_id", projectID)))
+
+	// ==============================================================
+	// Initialize Pub/Sub topic
+	// ==============================================================
+	topicID := mustEnv("PUBSUB_TOPIC_ID")
+	topic, err := pubsub.NewGoogleTopic(ctx, projectID, topicID)
+	if err != nil {
+		fatal(ctx, errors.Wrap(err, "error pubsub.NewGoogleTopic"))
+	}
+	slog.InfoContext(ctx, "initialized pubsub topic", slog.String("topic", topicID))
+
+	// ==============================================================
+	// Register HTTP / Event-driven handlers
+	// ==============================================================
+	h := handlers.New(topic)
+	app.RegisterHTTP("start", nil, h.Start)
 
 	go func() {
 		<-ctx.Done()
@@ -37,4 +61,9 @@ func mustEnv(key string) string {
 	}
 	slog.Info("detected value from environment", slog.String("key", key), slog.String("value", v))
 	return v
+}
+
+func fatal(ctx context.Context, err error) {
+	slog.ErrorContext(ctx, fmt.Sprintf("exit with: %+v", err))
+	os.Exit(1)
 }

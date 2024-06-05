@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
@@ -34,4 +35,25 @@ func RegisterHTTP(name string, mids []MiddlewareHTTP, handlerFunc HandlerFuncHTT
 
 	otelHandler := otelhttp.NewHandler(stdHandler, name)
 	functions.HTTP(name, otelHandler.ServeHTTP)
+}
+
+// RespondHTTP は HTTP レスポンスを返します。
+func RespondHTTP(ctx context.Context, w http.ResponseWriter, data any, statusCode int) error {
+	setStatusCode(ctx, statusCode)
+
+	if statusCode == http.StatusNoContent {
+		w.WriteHeader(statusCode)
+		return nil
+	}
+
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	if err := encoder.Encode(data); err != nil {
+		return err
+	}
+
+	return nil
 }
