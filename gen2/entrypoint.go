@@ -25,7 +25,7 @@ func init() {
 	defer stop()
 
 	// ==============================================================
-	// Initialize observability solutions
+	// Setup observability solutions
 	// ==============================================================
 	logger := slog.New(NewLogHandler(os.Stderr, slog.LevelInfo))
 	slog.SetDefault(logger)
