@@ -13,7 +13,7 @@ type HandlerFuncHTTP func(ctx context.Context, w http.ResponseWriter, r *http.Re
 
 type MiddlewareHTTP func(next HandlerFuncHTTP) HandlerFuncHTTP
 
-func RegisterHTTP(name string, mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) {
+func RegisterHTTP(entrypoint string, mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) {
 	for i := len(mids) - 1; i >= 0; i-- {
 		midFunc := mids[i] // loop backwards
 		if midFunc != nil {
@@ -33,8 +33,8 @@ func RegisterHTTP(name string, mids []MiddlewareHTTP, handlerFunc HandlerFuncHTT
 		}
 	})
 
-	otelHandler := otelhttp.NewHandler(stdHandler, name)
-	functions.HTTP(name, otelHandler.ServeHTTP)
+	otelHandler := otelhttp.NewHandler(stdHandler, entrypoint)
+	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }
 
 // RespondHTTP は HTTP レスポンスを返します。
