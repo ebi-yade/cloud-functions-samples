@@ -1,2 +1,3 @@
 # cloud-functions-samples
-Cloud Functions 活用のサンプルコードたち
+
+Cloud Functions 活用のサンプルコードたち（ツッコミ歓迎）
