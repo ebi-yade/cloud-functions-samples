@@ -9,10 +9,13 @@ import (
 	"syscall"
 	"time"
 
+	googlepropagator "github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func init() {
@@ -22,7 +25,7 @@ func init() {
 	defer stop()
 
 	// ==============================================================
-	// Initialize structured logging
+	// Initialize observability solutions
 	// ==============================================================
 	logger := slog.New(NewLogHandler(os.Stderr, slog.LevelInfo))
 	slog.SetDefault(logger)
@@ -30,8 +33,20 @@ func init() {
 	projectID := mustEnv("GOOGLE_CLOUD_PROJECT")
 	slog.SetDefault(logger.With(slog.String("project_id", projectID)))
 
+	propagators := []propagation.TextMapPropagator{
+		googlepropagator.CloudTraceOneWayPropagator{},
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	}
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagators...))
+	tp, err := NewTracerProvider(ctx, projectID, 0.1)
+	if err != nil {
+		fatal(ctx, errors.Wrap(err, "error NewTracerProvider"))
+	}
+	otel.SetTracerProvider(tp)
+
 	// ==============================================================
-	// Initialize Pub/Sub topic
+	// Initialize infrastructure dependencies
 	// ==============================================================
 	topicID := mustEnv("PUBSUB_TOPIC_ID")
 	topic, err := pubsub.NewGoogleTopic(ctx, projectID, topicID)
@@ -46,11 +61,18 @@ func init() {
 	h := handlers.New(topic)
 	app.RegisterHTTP("start", nil, h.Start)
 
+	// ==============================================================
+	// Start an asynchronous routine to handle shutdown signals
+	// ==============================================================
 	go func() {
 		<-ctx.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), gracePeriod)
 		defer cancel()
+
 		slog.InfoContext(ctx, "shutting down...")
+		if err := tp.ForceFlush(ctx); err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("error ForceFlush: %+v", err))
+		}
 	}()
 }
 
