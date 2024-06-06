@@ -59,7 +59,7 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(topic)
-	app.RegisterHTTP("start", nil, h.Start)
+	app.RegisterHTTP("functions-samples-start", nil, h.Start)
 
 	// ==============================================================
 	// Start an asynchronous routine to handle shutdown signals
