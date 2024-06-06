@@ -34,6 +34,27 @@ func WrapHTTP(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http.HandlerFu
 	return stdHandler.ServeHTTP
 }
 
+// ===============================================================
+// HTTP Middlewares
+// ===============================================================
+
+// RecoverHTTP はパニックを回復し、アプリケーション全体がクラッシュするのを防ぎます。
+func RecoverHTTP(next HandlerFuncHTTP) HandlerFuncHTTP {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) (returningError error) {
+		defer func() {
+			if r := recover(); r != nil {
+				returningError = r.(error)
+			}
+		}()
+
+		return next(ctx, w, r)
+	}
+}
+
+// ===============================================================
+// HTTP Utilities
+// ===============================================================
+
 // RespondHTTP は HTTP レスポンスを返します。
 func RespondHTTP(ctx context.Context, w http.ResponseWriter, data any, statusCode int) error {
 	setStatusCode(ctx, statusCode)
