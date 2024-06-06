@@ -4,16 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	googlepropagator "github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
@@ -59,7 +62,7 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(topic)
-	app.RegisterHTTP("functions-samples-start", nil, h.Start)
+	registerHandler("functions-samples-start", app.GetStandardHandler(nil, h.Start))
 
 	// ==============================================================
 	// Start an asynchronous routine to handle shutdown signals
@@ -88,4 +91,9 @@ func mustEnv(key string) string {
 func fatal(ctx context.Context, err error) {
 	slog.ErrorContext(ctx, fmt.Sprintf("exit with: %+v", err))
 	os.Exit(1)
+}
+
+func registerHandler(entrypoint string, stdHandler http.Handler) {
+	otelHandler := otelhttp.NewHandler(stdHandler, entrypoint)
+	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }
