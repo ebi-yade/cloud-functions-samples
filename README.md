@@ -8,9 +8,9 @@ Cloud Functions 活用のサンプルコードたち（ツッコミ歓迎）
 
 動かすには下記の CLI ツールが必要です。適宜インストールしてください。
 
-- `direnv`
-- `gcloud`
-- `terraform`
+- `direnv` 環境変数の設定（オプション）
+- `gcloud` Cloud Functions 関数のデプロイやテスト
+- `terraform` 依存リソースの管理
 
 ## gen2 ディレクトリ
 
@@ -20,6 +20,12 @@ Cloud Functions 第2世代で汎用的に使えそうなコードを置いてい
 
 - `functions-samples-start` (HTTP トリガー。 コマンドで呼び出す)
 - `functions-samples-hook` (Pub/Sub トリガー。 `functions-samples-start` から呼び出される)
+
+デプロイ方法:
+
+````shell
+./gen2/deploy.sh start
+````
 
 テスト方法:
 
