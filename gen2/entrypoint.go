@@ -76,6 +76,7 @@ func init() {
 		if err := tp.ForceFlush(ctx); err != nil {
 			slog.ErrorContext(ctx, fmt.Sprintf("error ForceFlush: %+v", err))
 		}
+		slog.InfoContext(ctx, "shutdown completed. bye!")
 	}()
 }
 
