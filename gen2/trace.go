@@ -19,9 +19,6 @@ func NewTracerProvider(ctx context.Context, projectID string, defaultSampleRatio
 	otelResource, err := resource.New(ctx,
 		resource.WithDetectors(gcp.NewDetector()),
 		resource.WithTelemetrySDK(),
-		//resource.WithAttributes(
-		//	semconv.ServiceNameKey.String(funcName),
-		//),
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error resource.New")
