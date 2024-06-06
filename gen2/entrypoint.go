@@ -33,7 +33,7 @@ func init() {
 	// ==============================================================
 	logger := slog.New(NewLogHandler(os.Stderr, slog.LevelInfo))
 	slog.SetDefault(logger)
-	// you may want to get the project ID from the metadata server
+	// maybe you want to get the project ID from the metadata server
 	projectID := mustEnv("GOOGLE_CLOUD_PROJECT")
 	slog.SetDefault(logger.With(slog.String("project_id", projectID)))
 
