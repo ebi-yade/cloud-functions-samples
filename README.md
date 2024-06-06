@@ -18,7 +18,7 @@ Cloud Functions 第2世代で汎用的に使えそうなコードを置いてい
 
 作成する関数:
 
-- `functions-samples-start` (HTTP トリガー。 コマンドで呼び出す)
+- `functions-samples-start` (HTTP トリガー。 オンデマンドに CLI 経由等で呼び出す)
 - `functions-samples-hook` (Pub/Sub トリガー。 `functions-samples-start` から呼び出される)
 
 デプロイ方法:
