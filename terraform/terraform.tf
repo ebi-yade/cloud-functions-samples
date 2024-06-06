@@ -35,6 +35,12 @@ resource "google_project_iam_member" "functions_samples_pubsub_subscriber" {
   member  = "serviceAccount:${google_service_account.functions_samples.email}"
 }
 
+resource "google_project_iam_member" "functions_samples_trace_agent" {
+  project = var.google_cloud_project
+  role    = "roles/cloudtrace.agent"
+  member  = "serviceAccount:${google_service_account.functions_samples.email}"
+}
+
 resource "google_pubsub_topic" "functions_samples" {
   name = "functions-samples"
 }
