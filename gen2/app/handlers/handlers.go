@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/Songmu/flextime"
+	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
+	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 )
 
@@ -29,12 +32,12 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return errors.Wrap(err, "error io.ReadAll")
 	}
-	event := SomeEvent{
+	e := SomeEvent{
 		Overview:  fmt.Sprintf("received an HTTP(%s) request", r.Method),
 		Payload:   body,
 		CreatedAt: flextime.Now(),
 	}
-	data, err := json.Marshal(event)
+	data, err := json.Marshal(e)
 	if err != nil {
 		return errors.Wrap(err, "error json.Marshal")
 	}
@@ -50,7 +53,22 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 }
 
 type SomeEvent struct {
-	Overview  string    `json:"overview"`
-	Payload   []byte    `json:"payload"`
-	CreatedAt time.Time `json:"created_at"`
+	Overview  string    `json:"overview" validate:"required"`
+	Payload   []byte    `json:"payload" validate:"required"`
+	CreatedAt time.Time `json:"created_at" validate:"required"`
+}
+
+func (h *Handlers) Hook(ctx context.Context, eventContext event.Event) error {
+	var e SomeEvent
+	if err := eventContext.DataAs(&e); err != nil {
+		return errors.Wrap(err, "error eventContext.DataAs")
+	}
+
+	if err := validator.New().Struct(e); err != nil {
+		return errors.Wrap(err, "error validator.New().Struct")
+	}
+
+	slog.InfoContext(ctx, fmt.Sprintf("received an event"), slog.Any("event", e))
+
+	return nil
 }

@@ -27,6 +27,14 @@ func (m Message) toGoogle() *pubsub.Message {
 	}
 }
 
+func InjectOtel(ctx context.Context, message *pubsub.Message) {
+	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(message.Attributes))
+}
+
+func ExtractOtel(ctx context.Context, message *pubsub.Message) context.Context {
+	return otel.GetTextMapPropagator().Extract(ctx, propagation.MapCarrier(message.Attributes))
+}
+
 type Topic interface {
 	Publish(ctx context.Context, message Message) error
 }
@@ -49,7 +57,7 @@ func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
 	if sending.Attributes == nil {
 		sending.Attributes = map[string]string{}
 	}
-	otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(sending.Attributes))
+	InjectOtel(ctx, sending)
 
 	res := t.topic.Publish(ctx, sending)
 	messageID, err := res.Get(ctx)

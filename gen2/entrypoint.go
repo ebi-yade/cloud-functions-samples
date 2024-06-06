@@ -13,6 +13,7 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	googlepropagator "github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator"
+	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
@@ -64,7 +65,12 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(googleTopic)
+	eventMids := []app.MiddlewareEvent{
+		app.RecoverEvent,
+		app.LogErrorEvent,
+	}
 	functionsHTTP("functions-samples-start", app.WrapHTTP(nil, h.Start))
+	functionsPubSub("functions-samples-hook", app.WrapEvent(eventMids, h.Hook))
 
 	// ==============================================================
 	// Start an asynchronous routine to handle shutdown signals
@@ -104,3 +110,20 @@ func functionsHTTP(entrypoint string, stdHandler http.HandlerFunc) {
 	otelHandler := otelhttp.NewHandler(stdHandler, entrypoint)
 	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }
+
+func functionsPubSub(name string, fn func(context.Context, event.Event) error) {
+	otelFn := func(ctx context.Context, e event.Event) error {
+		msg := pubsub.Message{}
+		if err := e.DataAs(&msg); err != nil {
+			return errors.Wrap(err, "error e.DataAs")
+		}
+		ctx = topic.ExtractOtel(ctx, &msg)
+		ctx, span := tracer.Start(ctx, name)
+		defer span.End()
+
+		return fn(ctx, e)
+	}
+	functions.CloudEvent(name, otelFn)
+}
+
+var tracer = otel.Tracer("github.com/ebi-yade/cloud-functions-samples/gen2")
