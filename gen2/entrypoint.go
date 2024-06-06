@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"cloud.google.com/go/pubsub"
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	googlepropagator "github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
-	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -52,16 +53,17 @@ func init() {
 	// Initialize infrastructure dependencies
 	// ==============================================================
 	topicID := mustEnv("PUBSUB_TOPIC_ID")
-	topic, err := pubsub.NewGoogleTopic(ctx, projectID, topicID)
+	pubsubClient, err := pubsub.NewClient(ctx, projectID)
 	if err != nil {
-		fatal(ctx, errors.Wrap(err, "error pubsub.NewGoogleTopic"))
+		fatal(ctx, errors.Wrap(err, "error pubsub.NewClient"))
 	}
+	googleTopic := topic.NewGoogleTopic(pubsubClient.Topic(topicID))
 	slog.InfoContext(ctx, "initialized pubsub topic", slog.String("topic", topicID))
 
 	// ==============================================================
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
-	h := handlers.New(topic)
+	h := handlers.New(googleTopic)
 	registerHandler("functions-samples-start", app.GetStandardHandler(nil, h.Start))
 
 	// ==============================================================
@@ -75,6 +77,9 @@ func init() {
 		slog.InfoContext(ctx, "shutting down...")
 		if err := tp.ForceFlush(ctx); err != nil {
 			slog.ErrorContext(ctx, fmt.Sprintf("error ForceFlush: %+v", err))
+		}
+		if err := pubsubClient.Close(); err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("error pubsubClient.Close: %+v", err))
 		}
 		slog.InfoContext(ctx, "shutdown completed. bye!")
 	}()

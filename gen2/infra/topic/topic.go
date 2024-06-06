@@ -1,4 +1,4 @@
-package pubsub
+package topic
 
 import (
 	"context"
@@ -11,12 +11,20 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 )
 
-var tracer = otel.Tracer("github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub")
+var tracer = otel.Tracer("github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic")
 
 type Message struct {
 	Data        []byte
 	Attributes  map[string]string
 	OrderingKey string
+}
+
+func (m Message) toGoogle() *pubsub.Message {
+	return &pubsub.Message{
+		Data:        m.Data,
+		Attributes:  m.Attributes,
+		OrderingKey: m.OrderingKey,
+	}
 }
 
 type Topic interface {
@@ -28,21 +36,16 @@ type GoogleTopic struct {
 	topic *pubsub.Topic
 }
 
-func NewGoogleTopic(ctx context.Context, projectID, topicID string) (*GoogleTopic, error) {
-	client, err := pubsub.NewClient(ctx, projectID)
-	if err != nil {
-		return nil, errors.Wrap(err, "error pubsub.NewClient")
-	}
-
+func NewGoogleTopic(topic *pubsub.Topic) *GoogleTopic {
 	return &GoogleTopic{
-		topic: client.Topic(topicID),
-	}, nil
+		topic: topic,
+	}
 }
 
 func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
 	ctx, span := tracer.Start(ctx, "topic.Publish")
 	defer span.End()
-	sending := message.toPubSub()
+	sending := message.toGoogle()
 	if sending.Attributes == nil {
 		sending.Attributes = map[string]string{}
 	}
@@ -59,14 +62,6 @@ func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
 	)
 
 	return nil
-}
-
-func (m Message) toPubSub() *pubsub.Message {
-	return &pubsub.Message{
-		Data:        m.Data,
-		Attributes:  m.Attributes,
-		OrderingKey: m.OrderingKey,
-	}
 }
 
 type SpyTopic struct {

@@ -10,15 +10,15 @@ import (
 
 	"github.com/Songmu/flextime"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
-	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/pubsub"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
 	"github.com/pkg/errors"
 )
 
 type Handlers struct {
-	topic pubsub.Topic
+	topic topic.Topic
 }
 
-func New(topic pubsub.Topic) *Handlers {
+func New(topic topic.Topic) *Handlers {
 	return &Handlers{
 		topic: topic,
 	}
@@ -38,7 +38,7 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 	if err != nil {
 		return errors.Wrap(err, "error json.Marshal")
 	}
-	if err := h.topic.Publish(ctx, pubsub.Message{Data: data}); err != nil {
+	if err := h.topic.Publish(ctx, topic.Message{Data: data}); err != nil {
 		return errors.Wrap(err, "error topic.Publish")
 	}
 
