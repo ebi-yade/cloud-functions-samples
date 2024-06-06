@@ -64,7 +64,7 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(googleTopic)
-	registerHandler("functions-samples-start", app.GetStandardHandler(nil, h.Start))
+	functionsHTTP("functions-samples-start", app.WrapHTTP(nil, h.Start))
 
 	// ==============================================================
 	// Start an asynchronous routine to handle shutdown signals
@@ -99,7 +99,8 @@ func fatal(ctx context.Context, err error) {
 	os.Exit(1)
 }
 
-func registerHandler(entrypoint string, stdHandler http.Handler) {
+// functionsHTTP は HTTP 関数を登録するための functions.HTTP をラップして otel に対応させたものです。
+func functionsHTTP(entrypoint string, stdHandler http.HandlerFunc) {
 	otelHandler := otelhttp.NewHandler(stdHandler, entrypoint)
 	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }

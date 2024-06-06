@@ -10,7 +10,8 @@ type HandlerFuncHTTP func(ctx context.Context, w http.ResponseWriter, r *http.Re
 
 type MiddlewareHTTP func(next HandlerFuncHTTP) HandlerFuncHTTP
 
-func GetStandardHandler(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http.Handler {
+// WrapHTTP は標準パッケージの http.HandlerFunc をメチャクチャいい感じにラップします。
+func WrapHTTP(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http.HandlerFunc {
 	for i := len(mids) - 1; i >= 0; i-- {
 		midFunc := mids[i] // loop backwards
 		if midFunc != nil {
@@ -30,7 +31,7 @@ func GetStandardHandler(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http
 		}
 	})
 
-	return stdHandler
+	return stdHandler.ServeHTTP
 }
 
 // RespondHTTP は HTTP レスポンスを返します。
