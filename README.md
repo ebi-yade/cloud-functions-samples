@@ -14,7 +14,7 @@ Cloud Functions 活用のサンプルコードたち（ツッコミ歓迎）
 
 ## gen2 ディレクトリ
 
-Cloud Functions 第2世代で汎用的に使えそうなコードを置いています。
+Cloud Functions 第2世代で汎用的に使えそうなコードを置いています。（他のところでも現時点では特に明示しない限り第2世代を利用しています）
 
 作成する関数:
 
@@ -26,10 +26,6 @@ Cloud Functions 第2世代で汎用的に使えそうなコードを置いてい
 ```shell
 gcloud functions call functions-samples-start --region=asia-northeast1 --gen2
 ```
-
-### 補足
-
-なお、他のところでも現時点では特に明示しない限り第2世代を利用しています。
 
 ## terraform ディレクトリ
 
