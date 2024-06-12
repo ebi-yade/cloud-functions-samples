@@ -44,7 +44,7 @@ func init() {
 		propagation.Baggage{},
 	}
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagators...))
-	tp, err := NewTracerProvider(ctx, projectID, 1.0)
+	tp, err := NewTracerProvider(ctx, projectID, 0.1)
 	if err != nil {
 		fatal(ctx, errors.Wrap(err, "error NewTracerProvider"))
 	}

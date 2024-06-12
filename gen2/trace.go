@@ -2,6 +2,8 @@ package gen2
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 
 	googletrace "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace"
 	"github.com/pkg/errors"
@@ -24,6 +26,12 @@ func NewTracerProvider(ctx context.Context, projectID string, defaultSampleRatio
 		return nil, errors.Wrap(err, "error resource.New")
 	}
 
+	if defaultSampleRatio >= 0.5 {
+		slog.WarnContext(ctx, "defaultSampleRatio is higher than 0.5, it may cause high-rate loops in sending traces")
+		if defaultSampleRatio == 1 {
+			return nil, fmt.Errorf("defaultSampleRatio must be less than 1 or it causes infinite loops in sending traces")
+		}
+	}
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(otelResource),
