@@ -7,7 +7,6 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 )
 
@@ -41,8 +40,8 @@ type Topic interface {
 
 // GoogleTopic is a wrapper for Google Cloud Pub/Sub Topic.
 type GoogleTopic struct {
-	client  *pubsub.Client
-	topicID string
+	client *pubsub.Client
+	topic  *pubsub.Topic
 }
 
 func NewGoogleTopic(ctx context.Context, projectID, topicID string) (*GoogleTopic, error) {
@@ -52,35 +51,32 @@ func NewGoogleTopic(ctx context.Context, projectID, topicID string) (*GoogleTopi
 	}
 
 	return &GoogleTopic{
-		client:  client,
-		topicID: topicID,
+		client: client,
+		topic:  client.Topic(topicID),
 	}, nil
-}
-
-func (t *GoogleTopic) Close(_ context.Context) error {
-	return t.client.Close()
 }
 
 func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
 	ctx, span := tracer.Start(ctx, "topic.Publish")
 	defer span.End()
+
 	sending := message.toGoogle()
 	if sending.Attributes == nil {
 		sending.Attributes = map[string]string{}
 	}
+
 	InjectOtel(ctx, sending)
-
-	res := t.client.Topic(t.topicID).Publish(ctx, sending)
-	messageID, err := res.Get(ctx)
-	if err != nil {
-		return errors.Wrap(err, "error topic.Publish")
-	}
-
-	span.SetAttributes(
-		attribute.String("message_id", messageID),
-	)
+	t.topic.Publish(ctx, sending)
 
 	return nil
+}
+
+func (t *GoogleTopic) Close(ctx context.Context) error {
+	ctx, span := tracer.Start(ctx, "topic.Close")
+	defer span.End()
+
+	t.topic.Stop() // maybe take a long time
+	return t.client.Close()
 }
 
 type SpyTopic struct {

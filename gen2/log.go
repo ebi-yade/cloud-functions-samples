@@ -92,10 +92,8 @@ func (h *LogHandler) Handle(ctx context.Context, record slog.Record) error {
 	// Open Telemetry トレース情報を追加
 	if span := trace.SpanFromContext(ctx); span != nil {
 		sc := span.SpanContext()
-		if traceID := sc.TraceID().String(); traceID != "" && h.projectID != "" {
-			if !strings.HasPrefix(traceID, "projects/") {
-				traceID = "projects/" + h.projectID + "/traces/" + traceID
-			}
+		if h.projectID != "" {
+			traceID := "projects/" + h.projectID + "/traces/" + sc.TraceID().String()
 			attrs = append(attrs, slog.String(logTraceKey, traceID))
 		}
 		attrs = append(attrs, slog.String(logSpanIDKey, sc.SpanID().String()))

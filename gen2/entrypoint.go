@@ -44,7 +44,7 @@ func init() {
 		propagation.Baggage{},
 	}
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagators...))
-	tp, err := NewTracerProvider(ctx, projectID, 0.1)
+	tp, err := NewTracerProvider(ctx, projectID, 1.0)
 	if err != nil {
 		fatal(ctx, errors.Wrap(err, "error NewTracerProvider"))
 	}
@@ -79,11 +79,11 @@ func init() {
 		defer cancel()
 
 		slog.InfoContext(ctx, "shutting down...")
-		if err := tp.ForceFlush(ctx); err != nil {
-			slog.ErrorContext(ctx, fmt.Sprintf("error ForceFlush: %+v", err))
-		}
 		if err := googleTopic.Close(ctx); err != nil {
 			slog.ErrorContext(ctx, fmt.Sprintf("error pubsubClient.Close: %+v", err))
+		}
+		if err := tp.ForceFlush(ctx); err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("error ForceFlush: %+v", err))
 		}
 		slog.InfoContext(ctx, "shutdown completed. bye!")
 	}()
