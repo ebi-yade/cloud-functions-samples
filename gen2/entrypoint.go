@@ -64,7 +64,7 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(googleTopic)
-	webMids := []web.Middleware{
+	webMids := web.Middlewares{
 		web.Recover,
 	}
 	functionsHTTP("functions-samples-start", web.BuildStdHttpFunc(webMids, h.Start))

@@ -10,8 +10,14 @@ type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Reques
 
 type Middleware func(next HandlerFunc) HandlerFunc
 
+type Middlewares []Middleware
+
+func (mids Middlewares) Append(args ...Middleware) Middlewares {
+	return append(mids, args...)
+}
+
 // BuildStdHttpFunc はいい感じにラップした標準パッケージの http.HandlerFunc を組み立てます。
-func BuildStdHttpFunc(mids []Middleware, handlerFunc HandlerFunc) http.HandlerFunc {
+func BuildStdHttpFunc(mids Middlewares, handlerFunc HandlerFunc) http.HandlerFunc {
 	for i := len(mids) - 1; i >= 0; i-- {
 		midFunc := mids[i] // loop backwards
 		if midFunc != nil {
