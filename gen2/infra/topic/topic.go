@@ -41,13 +41,24 @@ type Topic interface {
 
 // GoogleTopic is a wrapper for Google Cloud Pub/Sub Topic.
 type GoogleTopic struct {
-	topic *pubsub.Topic
+	client  *pubsub.Client
+	topicID string
 }
 
-func NewGoogleTopic(topic *pubsub.Topic) *GoogleTopic {
-	return &GoogleTopic{
-		topic: topic,
+func NewGoogleTopic(ctx context.Context, projectID, topicID string) (*GoogleTopic, error) {
+	client, err := pubsub.NewClient(ctx, projectID)
+	if err != nil {
+		return nil, errors.Wrap(err, "error pubsub.NewClient")
 	}
+
+	return &GoogleTopic{
+		client:  client,
+		topicID: topicID,
+	}, nil
+}
+
+func (t *GoogleTopic) Close(_ context.Context) error {
+	return t.client.Close()
 }
 
 func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
@@ -59,7 +70,7 @@ func (t *GoogleTopic) Publish(ctx context.Context, message Message) error {
 	}
 	InjectOtel(ctx, sending)
 
-	res := t.topic.Publish(ctx, sending)
+	res := t.client.Topic(t.topicID).Publish(ctx, sending)
 	messageID, err := res.Get(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error topic.Publish")
