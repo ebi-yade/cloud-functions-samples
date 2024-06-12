@@ -10,12 +10,13 @@ import (
 	"syscall"
 	"time"
 
-	"cloud.google.com/go/pubsub"
+	libPubSub "cloud.google.com/go/pubsub"
 	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 	googlepropagator "github.com/GoogleCloudPlatform/opentelemetry-operations-go/propagator"
 	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/app/handlers"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app/pubsub"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app/web"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
 	"github.com/pkg/errors"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -54,7 +55,8 @@ func init() {
 	// Initialize infrastructure dependencies
 	// ==============================================================
 	topicID := mustEnv("PUBSUB_TOPIC_ID")
-	pubsubClient, err := pubsub.NewClient(ctx, projectID)
+	// topic 側に pubsub 持たせて Close() 実装してもよい
+	pubsubClient, err := libPubSub.NewClient(ctx, projectID)
 	if err != nil {
 		fatal(ctx, errors.Wrap(err, "error pubsub.NewClient"))
 	}
@@ -65,12 +67,11 @@ func init() {
 	// Register HTTP / Event-driven handlers
 	// ==============================================================
 	h := handlers.New(googleTopic)
-	eventMids := []app.MiddlewareEvent{
-		app.RecoverEvent,
-		app.LogErrorEvent,
+	webMids := []web.Middleware{
+		web.Recover,
 	}
-	functionsHTTP("functions-samples-start", app.WrapHTTP(nil, h.Start))
-	functionsPubSub("functions-samples-hook", app.WrapEvent(eventMids, h.Hook))
+	functionsHTTP("functions-samples-start", web.BuildStdHttpFunc(webMids, h.Start))
+	functionsCloudEvent("functions-samples-hook", pubsub.BuildEventDrivenFunc(h.Hook))
 
 	// ==============================================================
 	// Start an asynchronous routine to handle shutdown signals
@@ -111,13 +112,8 @@ func functionsHTTP(entrypoint string, stdHandler http.HandlerFunc) {
 	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }
 
-func functionsPubSub(name string, fn func(context.Context, event.Event) error) {
+func functionsCloudEvent(name string, fn func(context.Context, event.Event) error) {
 	otelFn := func(ctx context.Context, e event.Event) error {
-		msg := pubsub.Message{}
-		if err := e.DataAs(&msg); err != nil {
-			return errors.Wrap(err, "error e.DataAs")
-		}
-		ctx = topic.ExtractOtel(ctx, &msg)
 		ctx, span := tracer.Start(ctx, name)
 		defer span.End()
 

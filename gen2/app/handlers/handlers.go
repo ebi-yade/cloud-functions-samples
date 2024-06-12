@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/Songmu/flextime"
-	"github.com/cloudevents/sdk-go/v2/event"
-	"github.com/ebi-yade/cloud-functions-samples/gen2/app"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app/pubsub"
+	"github.com/ebi-yade/cloud-functions-samples/gen2/app/web"
 	"github.com/ebi-yade/cloud-functions-samples/gen2/infra/topic"
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -45,8 +45,8 @@ func (h *Handlers) Start(ctx context.Context, w http.ResponseWriter, r *http.Req
 		return errors.Wrap(err, "error topic.Publish")
 	}
 
-	if err := app.RespondHTTP(ctx, w, nil, http.StatusNoContent); err != nil {
-		return errors.Wrap(err, "error app.RespondHTTP")
+	if err := web.Respond(ctx, w, nil, http.StatusNoContent); err != nil {
+		return errors.Wrap(err, "error app.Respond")
 	}
 
 	return nil
@@ -58,11 +58,14 @@ type SomeEvent struct {
 	CreatedAt time.Time `json:"created_at" validate:"required"`
 }
 
-func (h *Handlers) Hook(ctx context.Context, eventContext event.Event) error {
-	var e SomeEvent
-	if err := eventContext.DataAs(&e); err != nil {
-		return errors.Wrap(err, "error eventContext.DataAs")
+func (h *Handlers) Hook(ctx context.Context, event pubsub.MessageEvent) error {
+
+	slog.InfoContext(ctx, string(event.Data))
+	e := SomeEvent{}
+	if err := json.Unmarshal(event.Data, &e); err != nil {
+		return errors.Wrap(err, "error json.Unmarshal")
 	}
+	slog.InfoContext(ctx, fmt.Sprintf("received an event"), slog.Any("event", e))
 
 	if err := validator.New().Struct(e); err != nil {
 		return errors.Wrap(err, "error validator.New().Struct")

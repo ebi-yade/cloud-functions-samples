@@ -1,4 +1,4 @@
-package app
+package web
 
 import (
 	"context"
@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-type HandlerFuncHTTP func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
+type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
-type MiddlewareHTTP func(next HandlerFuncHTTP) HandlerFuncHTTP
+type Middleware func(next HandlerFunc) HandlerFunc
 
-// WrapHTTP は標準パッケージの http.HandlerFunc をメチャクチャいい感じにラップします。
-func WrapHTTP(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http.HandlerFunc {
+// BuildStdHttpFunc はいい感じにラップした標準パッケージの http.HandlerFunc を組み立てます。
+func BuildStdHttpFunc(mids []Middleware, handlerFunc HandlerFunc) http.HandlerFunc {
 	for i := len(mids) - 1; i >= 0; i-- {
 		midFunc := mids[i] // loop backwards
 		if midFunc != nil {
@@ -38,8 +38,8 @@ func WrapHTTP(mids []MiddlewareHTTP, handlerFunc HandlerFuncHTTP) http.HandlerFu
 // HTTP Middlewares
 // ===============================================================
 
-// RecoverHTTP はパニックを回復し、アプリケーション全体がクラッシュするのを防ぎます。
-func RecoverHTTP(next HandlerFuncHTTP) HandlerFuncHTTP {
+// Recover はパニックを回復し、アプリケーション全体がクラッシュするのを防ぎます。
+func Recover(next HandlerFunc) HandlerFunc {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) (returningError error) {
 		defer func() {
 			if r := recover(); r != nil {
@@ -55,8 +55,8 @@ func RecoverHTTP(next HandlerFuncHTTP) HandlerFuncHTTP {
 // HTTP Utilities
 // ===============================================================
 
-// RespondHTTP は HTTP レスポンスを返します。
-func RespondHTTP(ctx context.Context, w http.ResponseWriter, data any, statusCode int) error {
+// Respond は HTTP レスポンスを返します。
+func Respond(ctx context.Context, w http.ResponseWriter, data any, statusCode int) error {
 	setStatusCode(ctx, statusCode)
 
 	if statusCode == http.StatusNoContent {
