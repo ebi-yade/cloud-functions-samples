@@ -9,6 +9,9 @@ import (
 	"cloud.google.com/go/pubsub"
 	"github.com/cloudevents/sdk-go/v2/event"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type MessageEvent pubsub.Message
@@ -31,6 +34,10 @@ func BuildEventDrivenFunc(handlerFunc HandlerFunc) EventDrivenFunc {
 		if err := e.DataAs(&msg); err != nil {
 			return errors.Wrap(err, "error e.DataAs")
 		}
+		ctx, span := tracer.Start(ctx, "pubsub.HandlerFunc", trace.WithAttributes(
+			attribute.String("event.message_id", msg.ID),
+		))
+		defer span.End()
 
 		return handlerFunc(ctx, MessageEvent(msg))
 	}
@@ -47,3 +54,5 @@ func wrapLoggingErr(next EventDrivenFunc) EventDrivenFunc {
 		return nil
 	}
 }
+
+var tracer = otel.Tracer("github.com/ebi-yade/cloud-functions-samples/gen2/app/pubsub")
