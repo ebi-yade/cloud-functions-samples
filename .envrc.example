@@ -1,2 +1,3 @@
 export GOOGLE_CLOUD_PROJECT="my-project-12345678"
 export TF_VAR_google_cloud_project="my-project-12345678"
+export TFSTATE_BUCKET="tfstate-my-project-12345678"

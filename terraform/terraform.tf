@@ -6,6 +6,13 @@ terraform {
       version = "~> 5.32.0"
     }
   }
+
+  # If your repository is private, consider configuring a backend like below
+  # instead of calling ./backup.sh after `terraform apply`.
+  #
+  # backend "gcs" {
+  #   bucket = "tfstate-my-project-12345678"
+  # }
 }
 
 provider "google" {
