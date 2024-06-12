@@ -109,6 +109,7 @@ func functionsHTTP(entrypoint string, stdHandler http.HandlerFunc) {
 	functions.HTTP(entrypoint, otelHandler.ServeHTTP)
 }
 
+// functionsCloudEvent はイベントドリブン関数を登録するための functions.CloudEvent をラップして otel に対応させたものです。
 func functionsCloudEvent(name string, fn func(context.Context, event.Event) error) {
 	otelFn := func(ctx context.Context, e event.Event) error {
 		ctx, span := tracer.Start(ctx, name)
