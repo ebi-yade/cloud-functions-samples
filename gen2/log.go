@@ -115,22 +115,21 @@ const (
 
 func (h *LogHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	var unknownAttrs []slog.Attr
+	projectID := h.projectID
 	for _, a := range attrs {
 		switch a.Key {
 		case AttrKeyProjectID:
-			h.projectID = a.Value.String()
+			projectID = a.Value.String()
 		default:
 			unknownAttrs = append(unknownAttrs, a)
 		}
 	}
 
-	var base slog.Handler
+	base := h.base
 	if len(unknownAttrs) > 0 {
 		base = h.base.WithAttrs(unknownAttrs)
-	} else {
-		base = h.base
 	}
-	return &LogHandler{base: base, projectID: h.projectID}
+	return &LogHandler{base: base, projectID: projectID}
 }
 
 func (h *LogHandler) WithGroup(name string) slog.Handler {
