@@ -10,10 +10,16 @@ import (
 	"go.opentelemetry.io/contrib/detectors/gcp"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	googleoption "google.golang.org/api/option"
 )
 
 func NewTracerProvider(ctx context.Context, projectID string, defaultSampleRatio float64) (*sdktrace.TracerProvider, error) {
-	exporter, err := googletrace.New(googletrace.WithProjectID(projectID))
+	exporter, err := googletrace.New(
+		googletrace.WithProjectID(projectID),
+		googletrace.WithTraceClientOptions([]googleoption.ClientOption{
+			googleoption.WithTelemetryDisabled(),
+		}),
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error NewExporter")
 	}
