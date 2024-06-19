@@ -26,8 +26,7 @@ import (
 func init() {
 	// https://cloud.google.com/blog/ja/products/application-development/graceful-shutdowns-cloud-run-deep-dive
 	const gracePeriod = 5 * time.Second // shorter than Cloud Run's grace period
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
-	defer stop()
+	ctx, stopInitial := signal.NotifyContext(context.Background(), syscall.SIGTERM)
 
 	// ==============================================================
 	// Setup observability solutions
@@ -74,6 +73,7 @@ func init() {
 	// Start an asynchronous routine to handle shutdown signals
 	// ==============================================================
 	go func() {
+		defer stopInitial()
 		<-ctx.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), gracePeriod)
 		defer cancel()
