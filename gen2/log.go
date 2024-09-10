@@ -8,11 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"time"
 
 	"cloud.google.com/go/logging"
-	"github.com/Songmu/flextime" // time compatible package with utilities for testing
-	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -34,8 +31,7 @@ const (
 	logSourceLocationKey = "logging.googleapis.com/sourceLocation"
 	logTraceKey          = "logging.googleapis.com/trace"
 	logSpanIDKey         = "logging.googleapis.com/spanId"
-	logTraceSampledKey   = "logging.googleapis.com/traceSampled"
-	logInsertIDKey       = "insertId"
+	logTraceSampledKey   = "logging.googleapis.com/trace_sampled"
 	logTimestampKey      = "timestamp"
 )
 
@@ -79,16 +75,7 @@ func (h *LogHandler) Enabled(ctx context.Context, level slog.Level) bool {
 }
 
 func (h *LogHandler) Handle(ctx context.Context, record slog.Record) error {
-	// 一意なエントリを保証するための情報を生成
-	now := flextime.Now()
-	insertId := uuid.NewString()
-
-	// 属性を追加
-	attrs := []slog.Attr{
-		slog.String(logInsertIDKey, insertId),
-		slog.String(logTimestampKey, now.Format(time.RFC3339Nano)),
-	}
-
+	attrs := make([]slog.Attr, 0)
 	// Open Telemetry トレース情報を追加
 	if span := trace.SpanFromContext(ctx); span != nil {
 		sc := span.SpanContext()
@@ -105,7 +92,6 @@ func (h *LogHandler) Handle(ctx context.Context, record slog.Record) error {
 	}
 	record.AddAttrs(attrs...)
 
-	// timestamp, insertId によって重複対策をしているので、リトライを書いても良い?
 	return h.base.Handle(ctx, record)
 }
 
